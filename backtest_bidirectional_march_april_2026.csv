@@ -1,0 +1,4 @@
+Direction,Flat_Lots,Cmpd_Lots,Date_In,Time_In,Price_In,Date_Out,Time_Out,Price_Out,PTS,Flat_P&L,Cmpd_P&L,Status,Session,Trend
+LONG,0.10,0.10,2026-03-18,13:00,$72050.67,2026-03-18,14:00,$71330.17,-720.51,$-72.05,$-72.05,SL,New York,Bullish
+SHORT,0.10,0.10,2026-03-28,15:00,$66939.74,2026-03-29,22:00,$65686.90,+1252.85,$+125.28,$+125.28,TP1_Trail,New York,Bearish
+SHORT,0.10,0.20,2026-04-04,15:00,$67364.34,2026-04-05,22:00,$68037.99,-673.64,$-67.36,$-134.73,SL,New York,Bearish
