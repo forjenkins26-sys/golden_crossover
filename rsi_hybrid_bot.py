@@ -208,7 +208,7 @@ def check_available_margin(position_size_btc):
     required_margin = get_required_margin(position_size_btc, btc_price)
     return available_balance >= required_margin
 
-def fetch_candles(limit=250):
+def fetch_candles(limit=750):
     """Fetch historical OHLC candles"""
     try:
         now = int(time.time())
@@ -233,14 +233,22 @@ def fetch_candles(limit=250):
         response = requests.get(url, headers=headers, timeout=10)
         if response.status_code == 200:
             data = response.json()
-            if data.get('success'):
-                candles = data.get('result', [])
+            # API returns 'result' directly, not wrapped in 'success'
+            candles = data.get('result', [])
+            if candles:
+                last_ts = candles[-1].get('time', 'unknown')
+                print(f"[DEBUG] Fetched {len(candles)} candles, last timestamp: {last_ts} ({datetime.datetime.fromtimestamp(last_ts).strftime('%Y-%m-%d %H:%M:%S')}")
                 return candles
+            else:
+                print(f"[WARNING] Candle fetch returned empty result")
         else:
-            print(f"[WARNING] Candle fetch error {response.status_code}")
+            print(f"[ERROR] Candle fetch error {response.status_code}: {response.text[:200]}")
     except Exception as e:
-        print(f"[WARNING] Error fetching candles: {e}")
+        print(f"[ERROR] Exception fetching candles: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
     
+    print(f"[WARNING] Returning empty candles list")
     return []
 
 def calculate_rsi(prices, period=14):
@@ -279,27 +287,50 @@ def calculate_ema(prices, period=200):
 
 def get_signal():
     """Determine trading signal"""
-    candles = fetch_candles(750)
+    try:
+        candles = fetch_candles(750)
+        
+        if not candles or len(candles) < 201:
+            print(f"[WARNING] Insufficient candles for signal: {len(candles) if candles else 0}")
+            return 'NEUTRAL', None, None
+        
+        try:
+            closes = [float(candle['close']) for candle in candles]
+        except KeyError as e:
+            print(f"[ERROR] Candle parsing error - missing 'close' key: {e}")
+            print(f"[DEBUG] First candle structure: {candles[0] if candles else 'No candles'}")
+            return 'NEUTRAL', None, None
+        
+        try:
+            rsi = calculate_rsi(closes, RSI_PERIOD)
+        except Exception as e:
+            print(f"[ERROR] RSI calculation failed: {type(e).__name__}: {e}")
+            rsi = None
+        
+        try:
+            ema200 = calculate_ema(closes, EMA_PERIOD)
+        except Exception as e:
+            print(f"[ERROR] EMA calculation failed: {type(e).__name__}: {e}")
+            ema200 = None
+        
+        if rsi is None or ema200 is None:
+            print(f"[WARNING] Signal calculation incomplete: RSI={rsi}, EMA={ema200}")
+            return 'NEUTRAL', rsi, ema200
+        
+        current_price = closes[-1]
+        
+        if rsi < 30 and current_price > ema200:
+            return 'LONG', rsi, ema200
+        elif rsi > 70:
+            return 'SHORT', rsi, ema200
+        else:
+            return 'NEUTRAL', rsi, ema200
     
-    if not candles or len(candles) < 201:
+    except Exception as e:
+        print(f"[ERROR] Exception in get_signal: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
         return 'NEUTRAL', None, None
-    
-    closes = [float(c['close']) for c in candles]
-    
-    rsi = calculate_rsi(closes, RSI_PERIOD)
-    ema200 = calculate_ema(closes, EMA_PERIOD)
-    
-    if rsi is None or ema200 is None:
-        return 'NEUTRAL', rsi, ema200
-    
-    current_price = closes[-1]
-    
-    if rsi < 30 and current_price > ema200:
-        return 'LONG', rsi, ema200
-    elif rsi > 70:
-        return 'SHORT', rsi, ema200
-    else:
-        return 'NEUTRAL', rsi, ema200
 
 def place_entry_order(side, position_size_btc):
     """Place market entry order"""
@@ -653,10 +684,27 @@ def startup_check():
     except Exception as e:
         print(f"   Status: Error - {e}")
     
+    # CALCULATE FIRST RSI AND EMA BEFORE SENDING STARTUP MESSAGE
+    print(f"\n[CALCULATING INDICATORS]")
+    signal, rsi, ema = get_signal()
+    
+    if rsi is None or ema is None:
+        print(f"[ERROR] Failed to calculate indicators on startup")
+        print(f"   RSI: {rsi}")
+        print(f"   EMA: {ema}")
+        startup_error_msg = f"Bot startup failed - could not calculate RSI/EMA. Check API connection and candle data."
+        print(f"   {startup_error_msg}")
+        send_telegram(f"[ERROR] {startup_error_msg}")
+        return False
+    
+    print(f"   RSI: {rsi:.1f}")
+    print(f"   EMA: ${ema:,.2f}")
+    
     print(f"\n[SUCCESS] All checks passed - Bot ready to trade!")
     print("="*70 + "\n")
     
-    startup_msg = f"Bot is online. BTC Price: ${bot_state['current_price']:,.2f} RSI: Computing... EMA: Computing... Signal: Starting..."
+    # NOW SEND STARTUP MESSAGE WITH ACTUAL RSI AND EMA VALUES
+    startup_msg = f"Bot is online. BTC Price: ${bot_state['current_price']:,.2f} RSI: {rsi:.1f} EMA: ${ema:,.0f} Signal: {signal}"
     send_telegram(startup_msg)
     
     return True
@@ -708,7 +756,14 @@ def main_loop():
                     else:
                         print(f"  [SUCCESS] Executing {signal} trade ({position_size_btc:.4f} BTC)")
                         if execute_trade(signal, position_size_btc):
-                            message = f"Trade Opened Side={signal} Entry=${bot_state['current_price']:,.2f} Position={position_size_btc:.4f}BTC"
+                            entry_price = bot_state['current_price']
+                            if signal == 'LONG':
+                                tp_price = entry_price * (1 + TP_PERCENT)
+                                sl_price = entry_price * (1 - SL_PERCENT)
+                            else:
+                                tp_price = entry_price * (1 - TP_PERCENT)
+                                sl_price = entry_price * (1 + SL_PERCENT)
+                            message = f"Trade Opened Side={signal} Entry=${entry_price:,.2f} Position={position_size_btc:.4f}BTC TP=${tp_price:,.0f} SL=${sl_price:,.0f}"
                             send_telegram(message)
                         else:
                             print(f"  [ERROR] Failed to execute trade")
@@ -732,12 +787,16 @@ def main_loop():
             send_telegram("[STOP] Bot stopped by user")
             break
         except Exception as e:
-            error_msg = str(e)[:80]
-            print(f"\n[ERROR] Unexpected error: {error_msg}")
+            error_msg = str(e)
+            error_type = type(e).__name__
+            print(f"\n[ERROR] {error_type}: {error_msg}")
+            import traceback
+            print(traceback.format_exc())
             try:
-                send_telegram(f"[ERROR] Bot error occurred. Check logs for details.")
-            except:
-                pass
+                send_telegram(f"[ERROR] Bot crash: {error_type}: {error_msg[:100]}")
+            except Exception as telegram_error:
+                print(f"[ERROR] Failed to send Telegram alert: {telegram_error}")
+            print("[INFO] Bot will continue running...")
             time.sleep(60)
 
 # ============================================================================

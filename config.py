@@ -14,8 +14,8 @@ load_dotenv()
 # ============================================================================
 # DELTA EXCHANGE API CREDENTIALS
 # ============================================================================
-DEMO_API_KEY = os.getenv('DEMO_API_KEY', '')
-DEMO_API_SECRET = os.getenv('DEMO_API_SECRET', '')
+DEMO_API_KEY = os.getenv('DEMO_API_KEY', 'aMpcVoWFDJNpGGb2QYJKp2ZrljalU4')
+DEMO_API_SECRET = os.getenv('DEMO_API_SECRET', 'ypj0WNDEOaQ4WNyx4fLidxde0Ba0Uo4iKI5HYes7Q46XtkPSDs1Wami1zDIH')
 DEMO_BASE_URL = "https://cdn-ind.testnet.deltaex.org"  # Demo API base URL - DO NOT CHANGE
 
 # ============================================================================
@@ -27,8 +27,8 @@ GOOGLE_CREDENTIALS_PATH = os.getenv('GOOGLE_CREDENTIALS_PATH', 'google_credentia
 # ============================================================================
 # TELEGRAM NOTIFICATIONS
 # ============================================================================
-TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '')
-TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID', '')
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '8765740344:AAGXil8M89EMg5W1qCT5EQojspizltahkv4')
+TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID', '757555299')
 
 # ============================================================================
 # TRADING PARAMETERS (DO NOT MODIFY - BACKTESTED VALUES)
