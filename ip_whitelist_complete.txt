@@ -1,0 +1,4 @@
+Railway IP Whitelist Complete - April 11, 2026
+IP: 162.220.234.29
+Status: Added to Delta Exchange whitelist
+Ready: Bot should now connect successfully
