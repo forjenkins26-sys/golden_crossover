@@ -1,0 +1,6 @@
+Auto-Deploy Test #2 - April 11, 2026
+Time: Post-GitHub Reconnection
+Purpose: Verify Railway auto-deploy is working after GitHub connection restore
+Status: Testing if this file triggers auto-deployment
+
+Expected: Railway should detect this commit and auto-deploy within 30-60 seconds
