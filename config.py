@@ -1,25 +1,27 @@
 """
 CONFIG.PY
 Configuration file for RSI Hybrid Bot
-Do NOT commit credentials to GitHub - keep this file with .gitignore
-
-Fill in all values below with your actual credentials from testnet.delta.exchange
+Uses environment variables for sensitive credentials
 """
 
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file (local) or Railway environment
+load_dotenv()
 
 # ============================================================================
 # DELTA EXCHANGE DEMO API CREDENTIALS
 # ============================================================================
-DEMO_API_KEY = "aMpcVoWFDJNpGGb2QYJKp2ZrljalU4"  # Your API key from testnet.delta.exchange
-DEMO_API_SECRET = "ypj0WNDEOaQ4WNyx4fLidxde0Ba0Uo4iKI5HYes7Q46XtkPSDs1Wami1zDIH"  # Your API secret from testnet.delta.exchange
+DEMO_API_KEY = os.getenv('DEMO_API_KEY', 'aMpcVoWFDJNpGGb2QYJKp2ZrljalU4')
+DEMO_API_SECRET = os.getenv('DEMO_API_SECRET', 'ypj0WNDEOaQ4WNyx4fLidxde0Ba0Uo4iKI5HYes7Q46XtkPSDs1Wami1zDIH')
 DEMO_BASE_URL = "https://cdn-ind.testnet.deltaex.org"  # Demo API base URL - DO NOT CHANGE
 
 # ============================================================================
 # TELEGRAM NOTIFICATIONS
 # ============================================================================
-TELEGRAM_BOT_TOKEN = "8765740344:AAGXil8M89EMg5W1qCT5EQojspizltahkv4"  # Your Telegram bot token
-TELEGRAM_CHAT_ID = "757555299"  # Your Telegram chat ID
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '8765740344:AAGXil8M89EMg5W1qCT5EQojspizltahkv4')
+TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID', '757555299')
 
 # ============================================================================
 # TRADING PARAMETERS (DO NOT MODIFY - BACKTESTED VALUES)
