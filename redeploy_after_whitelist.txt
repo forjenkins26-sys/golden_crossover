@@ -1,0 +1,4 @@
+Redeploy Test - April 11, 2026
+After IP Whitelist Update: 162.220.234.47
+Purpose: Trigger bot restart with whitelisted IP
+Expected: Bot should now connect to Delta Exchange successfully
