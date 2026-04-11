@@ -48,8 +48,18 @@ ALIVE_CHECK_HOURS = 6  # Send "Bot is alive" message every 6 hours
 # ============================================================================
 try:
     SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-    credentials = Credentials.from_service_account_file(
-        GOOGLE_CREDENTIALS_PATH, scopes=SCOPES)
+    
+    # Try to get credentials from environment variable (Railway) first
+    google_creds_json = os.getenv('GOOGLE_CREDENTIALS_JSON')
+    if google_creds_json:
+        # Parse JSON from environment variable
+        creds_dict = json.loads(google_creds_json)
+        credentials = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+    else:
+        # Fall back to file path (local development)
+        credentials = Credentials.from_service_account_file(
+            GOOGLE_CREDENTIALS_PATH, scopes=SCOPES)
+    
     sheets_service = build('sheets', 'v4', credentials=credentials)
 except Exception as e:
     print(f"[WARNING] Google Sheets initialization failed: {e}")
