@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-RSI_HYBRID_BOT.PY - Live Trading Bot with Google Sheets Logging
+RSI_HYBRID_BOT.PY - Live Trading Bot with Google Sheets + Excel Logging
 Live trading bot for Delta Exchange BTCUSD perpetual futures
 Strategy: RSI 30/70 with 200 EMA filter
 Position Sizing: Dynamic capital-risk based
 Leverage: 10x automatic
 Timeframe: 1-hour candles
-Logging: Google Sheets (Trade_Log + Daily_Summary tabs)
+Logging: Google Sheets (Trade_Log + Daily_Summary tabs) + Local Excel files
 """
 
 import requests
@@ -33,6 +33,7 @@ from config import (
     RSI_PERIOD, EMA_PERIOD, TIMEFRAME,
     GOOGLE_SHEET_ID, GOOGLE_CREDENTIALS_PATH
 )
+from excel_logger import log_trade_to_excel, create_master_journal, create_daily_log_file
 
 # ============================================================================
 # CONSTANTS
@@ -278,7 +279,7 @@ def calculate_ema(prices, period=200):
 
 def get_signal():
     """Determine trading signal"""
-    candles = fetch_candles(250)
+    candles = fetch_candles(750)
     
     if not candles or len(candles) < 201:
         return 'NEUTRAL', None, None
@@ -445,7 +446,7 @@ def update_google_sheets_cell(sheet_name, cell_range, values):
         return False
 
 def log_trade_to_sheets(direction, entry_price, exit_price, result, gross_pnl, fees, net_pnl, notes):
-    """Log trade to Trade_Log sheet"""
+    """Log trade to both Google Sheets and local Excel file"""
     now = datetime.datetime.now()
     date_str = now.strftime('%Y-%m-%d')
     time_str = now.strftime('%H:%M:%S')
@@ -467,7 +468,30 @@ def log_trade_to_sheets(direction, entry_price, exit_price, result, gross_pnl, f
         notes
     ]
     
+    # Log to Google Sheets
     append_to_google_sheets('Trade_Log', row)
+    
+    # Log to local Excel file
+    try:
+        trade_data = {
+            'date': date_str,
+            'time': time_str,
+            'direction': direction,
+            'entry_price': float(entry_price),
+            'exit_price': float(exit_price),
+            'result': result,
+            'gross_pnl': float(gross_pnl),
+            'fees': float(fees),
+            'net_pnl': float(net_pnl),
+            'cumulative_pnl': float(bot_state['cumulative_pnl']),
+            'notes': notes
+        }
+        log_trade_to_excel(trade_data)
+        
+        # Update master journal after each trade
+        create_master_journal()
+    except Exception as e:
+        print(f"[WARNING] Excel logging failed: {e}")
     
     # Save to daily_trades for summary
     bot_state['daily_trades'].append({
@@ -620,6 +644,14 @@ def startup_check():
         print(f"   Status: Connected")
     else:
         print(f"   Status: Not configured (local logging only)")
+    
+    print(f"\n[EXCEL JOURNAL]")
+    try:
+        daily_file = create_daily_log_file()
+        print(f"   Daily Log: {daily_file.name}")
+        print(f"   Status: Ready")
+    except Exception as e:
+        print(f"   Status: Error - {e}")
     
     print(f"\n[SUCCESS] All checks passed - Bot ready to trade!")
     print("="*70 + "\n")
