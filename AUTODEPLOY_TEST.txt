@@ -1,0 +1,10 @@
+AUTO DEPLOY TEST FILE
+=====================
+
+Created: April 11, 2026  
+Purpose: Test if Railway auto-deploys on GitHub push
+
+If this file shows up in Railway Logs, auto-deploy is WORKING ✅
+If it doesn't appear after 5 minutes, auto-deploy is DISABLED ❌
+
+Timestamp: 09:30 UTC
